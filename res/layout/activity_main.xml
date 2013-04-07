@@ -1,25 +1,33 @@
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     tools:context=".MainActivity" >
 
     <Button
         android:id="@+id/createLesson"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="27dp"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:layout_weight="1"
         android:onClick="drawLine"
-        android:text="@string/createLesson" />
+        android:text="@string/createLesson"
+        android:background="@drawable/button" />
 
     <Button
         android:id="@+id/bulletinBoard"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignRight="@+id/createLesson"
-        android:layout_below="@+id/createLesson"
-        android:layout_marginTop="53dp"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:layout_weight="1"
+        android:background="@drawable/button"
         android:text="Lessons" />
 
-</RelativeLayout>
+    <Button
+        android:id="@+id/classView"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:layout_weight="1"
+        android:text="Class"
+        android:background="@drawable/button" />
+
+</LinearLayout>
