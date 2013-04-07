@@ -1,102 +1,168 @@
 package com.beyer.whiteboard;
 
+import java.util.ArrayList;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.RectF;
+import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
 public class DrawView extends View {
 	private static final float STROKE_WIDTH = 6f;
 	private static final float HALF_STROKE_WIDTH = STROKE_WIDTH / 2;
-	private Paint paint = new Paint();
-	
-	private Path path = new Path();
-	
-	private float lastTouchX;
-	private float lastTouchY;
-	private final RectF dirtyRect = new RectF();
+	private Canvas mCanvas;
+	private Path mPath;
+	public Paint mPaint;
+	ArrayList<DrawableObject> drawableObjects = new ArrayList<DrawableObject>();
+	private ArrayList<DrawableObject> undoneDrawableObjects = new ArrayList<DrawableObject>();
 	
     public DrawView(Context context) {
         super(context);
-        paint.setAntiAlias(true);
-		paint.setColor(Color.BLUE);
-		paint.setStyle(Paint.Style.STROKE);
-		paint.setStrokeJoin(Paint.Join.ROUND);
-		paint.setStrokeWidth(STROKE_WIDTH);
+        clearDrawing();
+        setupPaint();
     }
     
-    @Override
-    public boolean onTouchEvent(MotionEvent e)
+    public DrawView(Context context, AttributeSet attrs)
     {
-		float eventX = e.getX();
-		float eventY = e.getY();
-		
-		switch (e.getAction())
-		{
-		case MotionEvent.ACTION_DOWN:
-			path.moveTo(eventX, eventY);
-			lastTouchX = eventX;
-			lastTouchY = eventY;			
-			return true;
-		case MotionEvent.ACTION_MOVE:
-		case MotionEvent.ACTION_UP:
-			resetDirtyRect(eventX, eventY);			
-			for (int i = 0; i < e.getHistorySize(); i++)
-			{
-				float historicalX = e.getHistoricalX(i);
-				float historicalY = e.getHistoricalY(i);
-				expandDirtyRect(historicalX, historicalY);
-				path.lineTo(historicalX, historicalY);
-			}
-			
-			path.lineTo(eventX, eventY);
-			break;
-		default:
-			return false;
-		}
-		
-		invalidate((int) (dirtyRect.left - HALF_STROKE_WIDTH),
-					(int) (dirtyRect.top - HALF_STROKE_WIDTH),
-					(int) (dirtyRect.right + HALF_STROKE_WIDTH),
-					(int) (dirtyRect.bottom + HALF_STROKE_WIDTH));
-		
-		lastTouchX = eventX;
-		lastTouchY = eventY;
-		
-		return true;
+    	super(context, attrs);
+    	clearDrawing();
+    	setupPaint();
     }
     
-    private void expandDirtyRect(float historicalX, float historicalY)
+    public void clearDrawing() 
     {
-    	if (historicalX < dirtyRect.left) dirtyRect.left = historicalX;
-    	else if ( historicalX > dirtyRect.right) dirtyRect.right = historicalX; 
-    	if (historicalY < dirtyRect.top) dirtyRect.top = historicalY;
-    	else if ( historicalY > dirtyRect.bottom) dirtyRect.bottom = historicalY;
+    	drawableObjects.clear();
+	    undoneDrawableObjects.clear();
+	    invalidate();
     }
     
-    private void resetDirtyRect(float eventX, float eventY)
-    {
-    	dirtyRect.left = Math.min(lastTouchX, eventX);
-    	dirtyRect.right = Math.max(lastTouchX, eventX);
-    	dirtyRect.top = Math.min(lastTouchY, eventY);
-    	dirtyRect.bottom = Math.max(lastTouchY, eventY);
+	private void setupPaint() {
+	    mPaint = new Paint();
+	    mPaint.setAntiAlias(true);
+	    mPaint.setDither(true);
+	    mPaint.setColor(Color.BLUE);
+	    mPaint.setStyle(Paint.Style.STROKE);
+	    mPaint.setStrokeJoin(Paint.Join.ROUND);
+	    mPaint.setStrokeCap(Paint.Cap.ROUND);
+	    mPaint.setStrokeWidth(STROKE_WIDTH);
+	
+	    mCanvas = new Canvas();
+	    mPath = new Path();
+	}
+	
+	@Override
+	protected void onDraw(Canvas canvas) {
+	    //canvas.drawColor(mPaint.getColor()); // background color
+	
+	    for (DrawableObject p : drawableObjects) {	
+	        canvas.drawPath(p.getPath(), p.getPaint());
+	    }
+	    // TODO look here
+	    canvas.drawPath(mPath, mPaint);	
+	}
+	
+	public void setColor (int color)
+	{
+		mPaint.setColor(color);
+	}
+	
+	
+	
+	private float mX, mY;
+	private static final float TOUCH_TOLERANCE = 4;
+	
+	private void touch_start(float x, float y) {
+	
+	    mPaint.setColor(mPaint.getColor());
+	    undoneDrawableObjects.clear();
+	    mPath.reset();
+	    mPath.moveTo(x, y);
+	    mX = x;
+	    mY = y;
+	
+	    Log.e("", "pathsize:::" + drawableObjects.size());
+	    Log.e("", "undonepathsize:::" + undoneDrawableObjects.size());
+	}
+	
+	private void touch_move(float x, float y) {
+	    float dx = Math.abs(x - mX);
+	    float dy = Math.abs(y - mY);
+	    if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
+	        mPath.quadTo(mX, mY, (x + mX) / 2, (y + mY) / 2);
+	        mX = x;
+	        mY = y;
+	    }
+	}
+	
+	private void touch_up() {
+	    mPath.lineTo(mX, mY);
+	    // commit the path to our offscreen
+	    mCanvas.drawPath(mPath, mPaint);
+	    // kill this so we don't double draw
+	    Paint newPaint = new Paint(mPaint);
+	    drawableObjects.add(new DrawableObject(mPath, newPaint));
+	    mPath = new Path();
+	
+	    Log.e("", "pathsize:::" + drawableObjects.size());
+	    Log.e("", "undonepathsize:::" + undoneDrawableObjects.size());
+	}
+	
+	public void onClickUndo() {
+	
+	    Log.e("", "pathsize:::" + drawableObjects.size());
+	    Log.e("", "undonepathsize:::" + undoneDrawableObjects.size());
+	    if (drawableObjects.size() > 0) {
+	    	undoneDrawableObjects.add(drawableObjects.remove(drawableObjects.size() - 1));
+	        invalidate();
+	    } else {
+	
+	    }
+	    // toast the user
+	}
+	
+	public void onClickRedo() {
+	
+	    Log.e("", "pathsize:::" + drawableObjects.size());
+	    Log.e("", "undonepathsize:::" + undoneDrawableObjects.size());
+	    if (undoneDrawableObjects.size() > 0) {
+	    	drawableObjects.add(undoneDrawableObjects.remove(undoneDrawableObjects.size() - 1));
+	        invalidate();
+	    } else {
+	
+	    }
+	    // toast the user
+	}
+	
+	@Override
+	public boolean onTouchEvent(MotionEvent event) {
+	    float x = event.getX();
+	    float y = event.getY();
+	
+	    switch (event.getAction()) {
+	    case MotionEvent.ACTION_DOWN:
+	        touch_start(x, y);
+	        return true;
+	    case MotionEvent.ACTION_MOVE:
+	        touch_move(x, y);
+	        break;
+	    case MotionEvent.ACTION_UP:
+	        touch_up();
+	        break;
+	    default:
+	    	return false;
+	    }
+	    invalidate();
+	    return true;
+	}
+	
+	@Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        int width = View.MeasureSpec.getSize(widthMeasureSpec);
+        int height = View.MeasureSpec.getSize(heightMeasureSpec);
+        setMeasuredDimension(width, height);
     }
-    
-    @Override
-    public void onDraw(Canvas c)
-    {
-    	//c.drawLine(20, 0, 0, 20, paint);
-    	c.drawPath(path, paint);
-    }
-    
-    public void clear()
-    {
-    	path.reset();
-    	invalidate();
-    }
-    
 }

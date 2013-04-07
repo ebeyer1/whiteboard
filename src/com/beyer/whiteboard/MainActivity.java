@@ -31,12 +31,12 @@ public class MainActivity extends Activity {
 
 	public void drawLine(View view)
 	{
-		Toast.makeText(this, "Some text", Toast.LENGTH_SHORT).show();
+		//Toast.makeText(this, "Some text", Toast.LENGTH_SHORT).show();
 		
-		dw = new DrawView(this.getApplicationContext());
+		//dw = new DrawView(this.getApplicationContext());
 		//dw.setBackgroundColor(Color.WHITE);
-		setContentView(dw);
-		//Intent intent = new Intent(this.getApplicationContext(), DrawView.class);
-		//startActivity(intent);
+		//setContentView(dw);
+		Intent intent = new Intent(this.getApplicationContext(), CreateDrawingActivity.class);
+		startActivity(intent);
 	}
 }
